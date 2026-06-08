@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Поиск в π | 10 миллионов цифр</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 25px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+            overflow: hidden;
+        }
+
+        header {
+            background: linear-gradient(135deg, #0f3460 0%, #16213e 100%);
+            color: white;
+            text-align: center;
+            padding: 25px;
+        }
+
+        header h1 {
+            font-size: 2em;
+            margin-bottom: 8px;
+        }
+
+        header p {
+            opacity: 0.85;
+            font-size: 0.9em;
+        }
+
+        .stats-bar {
+            background: #e94560;
+            padding: 10px;
+            text-align: center;
+            color: white;
+            font-size: 0.85em;
+        }
+
+        .search-section {
+            padding: 25px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 25px;
+            border-bottom: 2px solid #e0e0e0;
+            flex-wrap: wrap;
+        }
+
+        .tab-btn {
+            background: none;
+            border: none;
+            padding: 10px 18px;
+            font-size: 0.95em;
+            cursor: pointer;
+            color: #666;
+            transition: all 0.3s;
+            border-radius: 8px 8px 0 0;
+        }
+
+        .tab-btn:hover {
+            background: #f0f0f0;
+            color: #e94560;
+        }
+
+        .tab-btn.active {
+            color: #e94560;
+            border-bottom: 3px solid #e94560;
+            font-weight: bold;
+        }
+
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.4s;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        h2 {
+            color: #1a1a2e;
+            margin-bottom: 12px;
+            font-size: 1.3em;
+        }
+
+        .hint {
+            font-size: 0.8em;
+            color: #999;
+            margin-bottom: 15px;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 14px;
+            font-size: 1.1em;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            transition: all 0.3s;
+            font-family: monospace;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #e94560;
+        }
+
+        .date-inputs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .date-input {
+            flex: 1;
+            padding: 12px;
+            font-size: 1em;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .search-btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #e94560 0%, #c73e56 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-top: 5px;
+        }
+
+        .search-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(233,69,96,0.4);
+        }
+
+        .quick-buttons {
+            margin-top: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: center;
+        }
+
+        .quick-btn {
+            background: #f0f0f0;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-family: monospace;
+            cursor: pointer;
+            font-size: 0.85em;
+            transition: all 0.2s;
+        }
+
+        .quick-btn:hover {
+            background: #e94560;
+            color: white;
+        }
+
+        .result {
+            margin: 20px 25px 25px 25px;
+            padding: 20px;
+            border-radius: 15px;
+            display: none;
+        }
+
+        .result.visible {
+            display: block;
+            animation: slideIn 0.4s;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .result-found {
+            background: #d4edda;
+            border-left: 5px solid #28a745;
+        }
+
+        .result-not-found {
+            background: #f8d7da;
+            border-left: 5px solid #dc3545;
+        }
+
+        .result h3 {
+            margin-bottom: 12px;
+        }
+
+        .position {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #28a745;
+            margin: 10px 0;
+        }
+
+        .context {
+            background: white;
+            padding: 12px;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            overflow-x: auto;
+            white-space: nowrap;
+        }
+
+        .highlight {
+            background: #ffeb3b;
+            font-weight: bold;
+            padding: 2px 4px;
+            border-radius: 4px;
+        }
+
+        .fun-fact {
+            background: #e8f0fe;
+            padding: 12px;
+            border-radius: 10px;
+            margin-top: 15px;
+            font-size: 0.85em;
+            text-align: center;
+        }
+
+        footer {
+            background: #f8f9fa;
+            padding: 15px;
+            text-align: center;
+            color: #666;
+            font-size: 0.75em;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 30px;
+            color: #e94560;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                border-radius: 15px;
+            }
+            
+            header h1 {
+                font-size: 1.4em;
+            }
+            
+            .tab-btn {
+                padding: 8px 12px;
+                font-size: 0.85em;
+            }
+            
+            .context {
+                font-size: 0.7em;
+                white-space: normal;
+                word-break: break-all;
+            }
+            
+            .date-inputs {
+                flex-direction: column;
+            }
+            
+            .search-section {
+                padding: 18px;
+            }
+            
+            .result {
+                margin: 15px 18px 18px 18px;
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔍 Поиск в числе π</h1>
+            <p>10 000 000 цифр после запятой</p>
+        </header>
+        
+        <div class="stats-bar" id="stats-bar">
+            ⏳ Загрузка 10 миллионов цифр...
+        </div>
+
+        <div class="search-section">
+            <div class="tabs">
+                <button class="tab-btn active" data-tab="number">🔢 Число</button>
+                <button class="tab-btn" data-tab="word">🔤 Слово (A=01)</button>
+                <button class="tab-btn" data-tab="date">📅 Дата рождения</button>
+            </div>
+
+            <div class="tab-content active" id="number-tab">
+                <h2>Поиск числа</h2>
+                <input type="text" id="number-input" placeholder="Например: 1234567 или 314159" class="search-input">
+                <button id="search-number" class="search-btn">🔍 Искать</button>
+                
+                <div class="quick-buttons">
+                    <button class="quick-btn" data-num="1234567">1234567</button>
+                    <button class="quick-btn" data-num="87654321">87654321</button>
+                    <button class="quick-btn" data-num="1111111">1111111</button>
+                    <button class="quick-btn" data-num="7777777">7777777</button>
+                    <button class="quick-btn" data-num="9999999">9999999</button>
+                    <button class="quick-btn" data-num="0000000">0000000</button>
+                    <button class="quick-btn" data-num="31415926">31415926</button>
+                </div>
+            </div>
+
+            <div class="tab-content" id="word-tab">
+                <h2>Поиск слова</h2>
+                <p class="hint">📌 Слова преобразуются в цифры: A=01, B=02, ..., Z=26</p>
+                <input type="text" id="word-input" placeholder="Например: HELLO или PI" class="search-input">
+                <button id="search-word" class="search-btn">🔍 Искать</button>
+            </div>
+
+            <div class="tab-content" id="date-tab">
+                <h2>Поиск даты рождения</h2>
+                <div class="date-inputs">
+                    <input type="number" id="day" placeholder="День" min="1" max="31" class="date-input">
+                    <input type="number" id="month" placeholder="Месяц" min="1" max="12" class="date-input">
+                    <input type="number" id="year" placeholder="Год" min="1900" max="2026" class="date-input">
+                </div>
+                <button id="search-date" class="search-btn">🔍 Искать</button>
+            </div>
+        </div>
+
+        <div id="result" class="result"></div>
+
+        <div class="fun-fact">
+            💡 Интересный факт: В 10 миллионах цифр π каждая цифра (0-9) встречается около 1 000 000 раз!
+        </div>
+
+        <footer>
+            <p>π = 3.14159265358979323846264338327950288419716939937510...</p>
+            <p>⚡ Поиск по 10 000 000 цифр | Ваше число может быть здесь!</p>
+        </footer>
+    </div>
+
+    <script>
+        // Глобальные переменные
+        let piDigits = '';
+        let isLoaded = false;
+
+        // Преобразование слова в цифры
+        function wordToDigits(word) {
+            const digits = [];
+            for (const char of word.toUpperCase()) {
+                if (char >= 'A' && char <= 'Z') {
+                    const num = char.charCodeAt(0) - 'A'.charCodeAt(0) + 1;
+                    digits.push(num.toString().padStart(2, '0'));
+                } else if (char >= '0' && char <= '9') {
+                    digits.push(char);
+                }
+            }
+            return digits.join('');
+        }
+
+        // Поиск числа
+        function searchNumber(number) {
+            const numStr = number.toString();
+            const pos = piDigits.indexOf(numStr);
+            
+            if (pos !== -1) {
+                const start = Math.max(0, pos - 25);
+                const end = Math.min(piDigits.length, pos + numStr.length + 25);
+                let context = piDigits.substring(start, end);
+                const highlighted = context.replace(numStr, `<span class="highlight">${numStr}</span>`);
+                
+                return {
+                    found: true,
+                    position: pos,
+                    context: highlighted,
+                    length: numStr.length
+                };
+            }
+            return { found: false };
+        }
+
+        // Поиск даты
+        function searchDate(day, month, year) {
+            const dayStr = day.toString().padStart(2, '0');
+            const monthStr = month.toString().padStart(2, '0');
+            const yearStr = year.toString();
+            const yearShort = yearStr.slice(-2);
+            
+            const formats = [
+                { name: 'ДДММГГГГ', value: `${dayStr}${monthStr}${yearStr}` },
+                { name: 'ДДММГГ', value: `${dayStr}${monthStr}${yearShort}` },
+                { name: 'ММДДГГГГ', value: `${monthStr}${dayStr}${yearStr}` },
+            ];
+            
+            const results = [];
+            for (const format of formats) {
+                const pos = piDigits.indexOf(format.value);
+                if (pos !== -1) {
+                    results.push({
+                        format: format.name,
+                        value: format.value,
+                        position: pos
+                    });
+                }
+            }
+            return results;
+        }
+
+        // Отображение результата
+        function showResult(title, result) {
+            const resultDiv = document.getElementById('result');
+            
+            if (result.found) {
+                resultDiv.innerHTML = `
+                    <div class="result-found" style="padding: 20px; border-radius: 15px;">
+                        <h3>✅ ${title} НАЙДЕНО!</h3>
+                        <div class="position">📍 Позиция: ${result.position.toLocaleString()} (цифра после запятой)</div>
+                        <div class="context">📖 ...${result.context}...</div>
+                        <div style="margin-top: 10px; font-size: 0.85em; color: #666;">⚡ Длина: ${result.length} цифр</div>
+                    </div>
+                `;
+            } else {
+                resultDiv.innerHTML = `
+                    <div class="result-not-found" style="padding: 20px; border-radius: 15px;">
+                        <h3>❌ НЕ НАЙДЕНО</h3>
+                        <p>${title} не найдено в первых ${piDigits.length.toLocaleString()} цифрах π</p>
+                        <p style="margin-top: 8px; font-size: 0.85em;">💡 Попробуйте другое число или дату!</p>
+                    </div>
+                `;
+            }
+            resultDiv.classList.add('visible');
+        }
+
+        function showMultipleResults(title, results) {
+            const resultDiv = document.getElementById('result');
+            
+            if (results.length > 0) {
+                let html = `<div class="result-found" style="padding: 20px; border-radius: 15px;">
+                    <h3>✅ ${title} НАЙДЕНА!</h3>`;
+                for (const r of results) {
+                    html += `
+                        <div style="margin-top: 12px; padding: 10px; background: white; border-radius: 8px;">
+                            <div><strong>📌 Формат:</strong> ${r.format}</div>
+                            <div><strong>🔢 Значение:</strong> ${r.value}</div>
+                            <div><strong>📍 Позиция:</strong> ${r.position.toLocaleString()}</div>
+                        </div>
+                    `;
+                }
+                html += `</div>`;
+                resultDiv.innerHTML = html;
+            } else {
+                resultDiv.innerHTML = `
+                    <div class="result-not-found" style="padding: 20px; border-radius: 15px;">
+                        <h3>❌ НЕ НАЙДЕНА</h3>
+                        <p>Дата не найдена в первых ${piDigits.length.toLocaleString()} цифрах π</p>
+                    </div>
+                `;
+            }
+            resultDiv.classList.add('visible');
+        }
+
+        // Загрузка цифр π
+        async function loadPiDigits() {
+            const statsBar = document.getElementById('stats-bar');
+            
+            try {
+                const response = await fetch('pi_digits.txt');
+                if (!response.ok) throw new Error('Файл не найден');
+                
+                const text = await response.text();
+                piDigits = text.replace(/[^0-9]/g, '');
+                
+                if (piDigits.startsWith('3')) {
+                    piDigits = piDigits.substring(1);
+                }
+                
+                isLoaded = true;
+                statsBar.innerHTML = `✅ Загружено ${piDigits.length.toLocaleString()} цифр π | Готов к поиску!`;
+                
+            } catch (error) {statsBar.innerHTML = `❌ Ошибка: файл pi_digits.txt не найден. Убедитесь, что он в той же папке.`;
+                console.error(error);
+            }
+        }
+
+        // Инициализация
+        function init() {
+            loadPiDigits();
+            
+            // Вкладки
+            const tabBtns = document.querySelectorAll('.tab-btn');
+            const tabContents = document.querySelectorAll('.tab-content');
+            
+            tabBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const tabId = btn.getAttribute('data-tab');
+                    tabBtns.forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    tabContents.forEach(content => content.classList.remove('active'));
+                    document.getElementById(`${tabId}-tab`).classList.add('active');
+                });
+            });
+            
+            // Поиск числа
+            document.getElementById('search-number').addEventListener('click', () => {
+                if (!isLoaded) { alert('Подождите, цифры загружаются...'); return; }
+                const number = document.getElementById('number-input').value.trim();
+                if (!number) { alert('Введите число'); return; }
+                if (!/^\d+$/.test(number)) { alert('Введите только цифры'); return; }
+                const result = searchNumber(number);
+                showResult(`Число ${number}`, result);
+            });
+            
+            // Поиск слова
+            document.getElementById('search-word').addEventListener('click', () => {
+                if (!isLoaded) { alert('Подождите, цифры загружаются...'); return; }
+                const word = document.getElementById('word-input').value.trim().toUpperCase();
+                if (!word) { alert('Введите слово'); return; }
+                if (!/^[A-Z]+$/.test(word)) { alert('Введите только английские буквы'); return; }
+                const digits = wordToDigits(word);
+                const result = searchNumber(digits);
+                showResult(`Слово "${word}" (→ ${digits})`, result);
+            });
+            
+            // Поиск даты
+            document.getElementById('search-date').addEventListener('click', () => {
+                if (!isLoaded) { alert('Подождите, цифры загружаются...'); return; }
+                const day = parseInt(document.getElementById('day').value);
+                const month = parseInt(document.getElementById('month').value);
+                const year = parseInt(document.getElementById('year').value);
+                if (!day || !month || !year) { alert('Заполните день, месяц и год'); return; }
+                const results = searchDate(day, month, year);
+                showMultipleResults(`Дата ${day.toString().padStart(2,'0')}.${month.toString().padStart(2,'0')}.${year}`, results);
+            });
+            
+            // Быстрые кнопки
+            document.querySelectorAll('.quick-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const num = btn.getAttribute('data-num');
+                    document.getElementById('number-input').value = num;
+                    if (isLoaded) {
+                        const result = searchNumber(num);
+                        showResult(`Число ${num}`, result);
+                    } else {
+                        alert('Подождите, цифры загружаются...');
+                    }
+                });
+            });
+            
+            // Enter для числа
+            document.getElementById('number-input').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') document.getElementById('search-number').click();
+            });
+            document.getElementById('word-input').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') document.getElementById('search-word').click();
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
